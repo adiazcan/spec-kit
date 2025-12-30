@@ -299,6 +299,9 @@ Per plan.md:
 - [ ] T149 [P] Configure alerting for uptime and error rates (99.5% uptime target)
 - [ ] T150 Validate quickstart.md by following all setup steps in fresh environment
 - [ ] T151 Constitution compliance audit: verify all testing, UX, quality, and security requirements met
+- [ ] T152 [P] Implement database TTL indexes for conversation history (90-day retention) in backend/src/HRTimesheetAgent.Infrastructure/Data/TimesheetDbContext.cs
+- [ ] T153 [P] Configure Azure Cosmos DB 7-year retention policy for timesheet and audit log collections in infrastructure configuration
+- [ ] T154 Verify data retention compliance in constitution audit (7-year timesheet data per FR-049/FR-050, 90-day conversation logs)
 
 ---
 
@@ -455,7 +458,7 @@ With multiple developers (after Foundational phase completion):
 
 ## Summary Statistics
 
-- **Total Tasks**: 151
+- **Total Tasks**: 154
 - **Setup Tasks**: 12 (Phase 1)
 - **Foundational Tasks**: 16 (Phase 2)
 - **User Story Tasks**: 99 (Phases 3-10)
@@ -467,8 +470,8 @@ With multiple developers (after Foundational phase completion):
   - User Story 6 (P6): 12 tasks
   - User Story 7 (P7): 13 tasks
   - User Story 8 (P8): 15 tasks
-- **Polish Tasks**: 24 (Phase 11)
-- **Parallel Opportunities**: 42 tasks marked [P]
+- **Polish Tasks**: 27 (Phase 11)
+- **Parallel Opportunities**: 44 tasks marked [P]
 
 **MVP Scope** (Recommended initial release):
 - Phase 1: Setup (12 tasks)

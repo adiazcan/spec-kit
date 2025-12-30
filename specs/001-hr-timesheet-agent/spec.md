@@ -158,6 +158,7 @@ An employee discovers an error in a previously submitted timesheet entry and nee
 3. **Given** an employee tries to correct an entry that doesn't exist, **When** they reference a non-existent entry, **Then** the agent responds "I couldn't find that entry. Can you specify the date and project you want to correct?"
 4. **Given** an employee wants to see both original and corrected values, **When** they ask "Show my timesheet for yesterday", **Then** the agent displays the corrected values with an indicator that corrections were made (e.g., "Project Alpha: 7 hours (corrected from 8)")
 5. **Given** an employee submits multiple corrections to the same entry, **When** they correct the same entry twice, **Then** the agent tracks all corrections chronologically and applies the most recent correction
+6. **Given** an employee wants to view full correction audit trail, **When** they ask "Show correction history for Friday" or "Show me all corrections for last week", **Then** the agent displays all original entries and their correction chain with timestamps (e.g., "Friday, Dec 27: Project Alpha originally 8 hours → corrected to 7 hours at 3:45 PM")
 
 ---
 
@@ -241,7 +242,7 @@ An employee discovers an error in a previously submitted timesheet entry and nee
 - **FR-044**: System MUST support submitting correction entries that reference and supersede original entries
 - **FR-045**: System MUST maintain audit trail showing original entry, correction entry, timestamps, and employee who made each change
 - **FR-046**: System MUST display corrected values by default while indicating when corrections have been applied
-- **FR-047**: System MUST allow viewing both original and corrected values for audit purposes
+- **FR-047**: System MUST allow viewing both original and corrected values for audit purposes via command pattern "Show correction history for [date]"
 - **FR-048**: System MUST prevent corrections to entries that don't exist and prompt for clarification
 - **FR-049**: System MUST retain all timesheet data (entries, corrections, clock-in/out records) for 7 years from the date of creation
 - **FR-050**: System MUST retain audit logs for timesheet modifications for 7 years to support legal and compliance requirements
@@ -251,6 +252,8 @@ An employee discovers an error in a previously submitted timesheet entry and nee
 - **FR-054**: System MUST limit clarification questions to maximum 2 follow-ups before suggesting user rephrase their request
 - **FR-055**: System MUST log ambiguous requests and clarifications to improve NLP accuracy over time
 - **FR-056**: System MUST recognize when users express frustration with clarifications and offer alternative help (e.g., "Let me help differently - you can say 'Show my hours for [date]' or 'Log [hours] on [project]'")
+- **FR-057**: System MUST support English language input only (US and UK dialects)
+- **FR-058**: System SHOULD handle common abbreviations and shorthand (e.g., "hrs" → "hours", "wk" → "week", "h" → "hours", "tmrw" → "tomorrow")
 
 ### Key Entities
 
