@@ -1,0 +1,291 @@
+openapi: 3.0.3
+info:
+  title: HR Timesheet Agent API
+  description: |
+    AG-UI Protocol endpoint for HR Timesheet Conversational Agent.
+    
+    This API exposes a single AG-UI protocol endpoint for agent-user interactions.
+    All timesheet operations (view, submit, correct, clock in/out) are handled
+    through agent tool calls within the conversation flow, not as direct HTTP requests.
+    
+    **Architecture:**
+    - Frontend: React + CopilotKit (AG-UI protocol client)
+    - Backend: .NET + Microsoft Agent Framework (AG-UI protocol server)
+    - Protocol: AG-UI event-based, bidirectional streaming
+    
+    **Authentication:**
+    - Microsoft Entra ID OAuth 2.0 with authorization code flow
+    - Required scope: `api://hr-timesheet-agent/Agent.Use`
+  version: 1.0.0
+  contact:
+    name: HR Timesheet Agent Team
+  license:
+    name: MIT
+
+servers:
+  - url: https://localhost:7001
+    description: Local development (Aspire orchestration)
+  - url: https://hr-timesheet-agent.azurecontainerapps.io
+    description: Production (Azure Container Apps)
+
+security:
+  - OAuth2: [api://hr-timesheet-agent/Agent.Use]
+
+tags:
+  - name: Agent
+    description: AG-UI protocol endpoint for conversational agent
+  - name: Health
+    description: Health check endpoints for container orchestration
+
+# ============================
+# Paths
+# ============================
+
+paths:
+  /api/copilot:
+    post:
+      tags: [Agent]
+      summary: AG-UI Protocol Endpoint
+      description: |
+        Main endpoint for AG-UI protocol communication. Handles:
+        - User messages (chat input)
+        - Agent responses (streaming, generative UI)
+        - Tool calls (timesheet operations, clock events)
+        - Shared state management
+        - Human-in-the-loop confirmations
+        
+        **Protocol:** Server-Sent Events (SSE) for streaming responses
+        **Client:** CopilotKit React components
+        **Server:** Microsoft Agent Framework
+      operationId: copilotAgent
+      security:
+        - OAuth2: [api://hr-timesheet-agent/Agent.Use]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentRequest'
+      responses:
+        '200':
+          description: |
+            Agent response stream initiated. Events are sent via Server-Sent Events (SSE).
+            Event types: message, tool_call, state_update, thinking, error, done.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: AG-UI protocol event stream (SSE format)
+              example: |
+                event: message
+                data: {"role": "assistant", "content": "Let me check your timesheets..."}
+                
+                event: tool_call
+                data: {"name": "get_timesheets", "args": {"date": "2025-12-23"}}
+                
+                event: message
+                data: {"role": "assistant", "content": "You worked 8 hours on project PROJ-001."}
+                
+                event: done
+                data: {"thread_id": "123e4567-e89b-12d3-a456-426614174000"}
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns service health status. Used by Aspire dashboard and Azure Container Apps health probes.
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: "healthy"
+                      ai_foundry:
+                        type: string
+                        example: "healthy"
+                      blob_storage:
+                        type: string
+                        example: "healthy"
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "unhealthy"
+                  checks:
+                    type: object
+
+  /ready:
+    get:
+      tags: [Health]
+      summary: Readiness check
+      description: Returns readiness status. Service is ready to accept traffic.
+      operationId: readinessCheck
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ready"
+        '503':
+          description: Service is not ready
+
+  /live:
+    get:
+      tags: [Health]
+      summary: Liveness check
+      description: Returns liveness status. Service is running (not deadlocked).
+      operationId: livenessCheck
+      security: []
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "alive"
+
+# ============================
+# Components
+# ============================
+
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize
+          tokenUrl: https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token
+          scopes:
+            api://hr-timesheet-agent/Agent.Use: Interact with HR agent via AG-UI protocol
+
+  schemas:
+    AgentRequest:
+      type: object
+      description: Request payload for AG-UI protocol endpoint
+      properties:
+        threadId:
+          type: string
+          format: uuid
+          description: Conversation thread ID (optional for new conversations)
+          nullable: true
+        message:
+          type: string
+          maxLength: 2000
+          description: User message content
+        context:
+          type: object
+          description: Additional context (user profile, session state)
+          nullable: true
+        stream:
+          type: boolean
+          description: Enable streaming response (default true)
+          default: true
+      required:
+        - message
+      example:
+        message: "Show me my timesheets for this week"
+        stream: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+          nullable: true
+      required:
+        - error
+      example:
+        error: "Invalid request"
+        code: "VALIDATION_ERROR"
+        details:
+          field: "message"
+          reason: "Message exceeds maximum length"
+
+  responses:
+    BadRequest:
+      description: Bad request - validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Validation failed"
+            code: "BAD_REQUEST"
+
+    Unauthorized:
+      description: Unauthorized - missing or invalid authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Authentication required"
+            code: "UNAUTHORIZED"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Thread not found"
+            code: "NOT_FOUND"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "An unexpected error occurred"
+            code: "INTERNAL_ERROR"
